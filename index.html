@@ -1,45 +1,493 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Audio Recorder</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Mixer & Recorder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Styles for Glassmorphism & Aesthetics */
+        body {
+            background-image: linear-gradient(to top, #30cfd0 0%, #330867 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        /* Custom styles for sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            transition: background 0.3s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            border: none;
+        }
+    </style>
 </head>
-<body>
-  <h1>🎤 Record Your Voice</h1>
-  <button id="start">Start Recording</button>
-  <button id="stop" disabled>Stop Recording</button>
-  <br><br>
-  <audio id="audio" controls></audio>
+<body class="min-h-screen flex items-center justify-center font-sans p-4">
 
-  <script>
-    let mediaRecorder;
-    let audioChunks = [];
+    <div class="glass-card w-full max-w-2xl p-6 md:p-8 space-y-6">
+        <div class="text-center text-white">
+            <h1 class="text-3xl md:text-4xl font-bold">Audio Mixer 🎙️</h1>
+            <p class="text-white/80 mt-2">Record your voice with background sounds and real-time effects.</p>
+        </div>
 
-    document.getElementById('start').onclick = async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
+        <div class="space-y-6">
+            <div>
+                <label for="bgSound" class="block mb-2 text-sm font-medium text-white">Background Sound</label>
+                <select id="bgSound" class="w-full p-3 bg-white/20 text-white rounded-lg border-none focus:ring-2 focus:ring-white/50 outline-none">
+                    <option value="">None</option>
+                    <option value="sounds/rain.mp3">Rain 🌧️</option>
+                    <option value="sounds/cafe.mp3">Cafe ☕</option>
+                    <option value="sounds/waves.mp3">Waves 🌊</option>
+                    <option value="sounds/forest.mp3">Forest 🌲</option>
+                    <option value="sounds/fire.mp3">Fire 🔥</option>
+                </select>
+            </div>
 
-      mediaRecorder.ondataavailable = event => {
-        audioChunks.push(event.data);
-      };
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-white">
+                        <label for="bgVolume" class="text-sm font-medium">BG Volume</label>
+                        <span id="bgVolumeValue" class="text-xs font-mono">0.5</span>
+                    </div>
+                    <input id="bgVolume" type="range" min="0" max="1" step="0.01" value="0.5" class="w-full">
+                </div>
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        document.getElementById('audio').src = audioUrl;
-        audioChunks = []; // reset
-      };
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-white">
+                        <label for="gain" class="text-sm font-medium">Gain (Booster)</label>
+                        <span id="gainValue" class="text-xs font-mono">1.0</span>
+                    </div>
+                    <input id="gain" type="range" min="0.5" max="3" step="0.1" value="1" class="w-full">
+                </div>
 
-      mediaRecorder.start();
-      document.getElementById('start').disabled = true;
-      document.getElementById('stop').disabled = false;
-    };
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-white">
+                        <label for="bass" class="text-sm font-medium">Bass</label>
+                        <span id="bassValue" class="text-xs font-mono">0 dB</span>
+                    </div>
+                    <input id="bass" type="range" min="-10" max="10" step="1" value="0" class="w-full">
+                </div>
 
-    document.getElementById('stop').onclick = () => {
-      mediaRecorder.stop();
-      document.getElementById('start').disabled = false;
-      document.getElementById('stop').disabled = true;
-    };
-  </script>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-white">
+                        <label for="treble" class="text-sm font-medium">Treble</label>
+                        <span id="trebleValue" class="text-xs font-mono">0 dB</span>
+                    </div>
+                    <input id="treble" type="range" min="-10" max="10" step="1" value="0" class="w-full">
+                </div>
+
+                <div class="space-y-2 col-span-1 md:col-span-2">
+                    <div class="flex justify-between items-center text-white">
+                        <label for="pan" class="text-sm font-medium">Pan (L/R)</label>
+                        <span id="panValue" class="text-xs font-mono">Center</span>
+                    </div>
+                    <input id="pan" type="range" min="-1" max="1" step="0.1" value="0" class="w-full">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-4 pt-4">
+            <button id="startRec" class="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition-all transform hover:scale-105">Start Recording</button>
+            <button id="stopRec" class="px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition-all transform hover:scale-105" disabled>Stop</button>
+            <button id="playMix" class="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition-all transform hover:scale-105" disabled>Play Final Mix</button>
+            <button id="downloadMix" class="px-6 py-3 bg-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-purple-600 transition-all transform hover:scale-105" disabled>Download Mix</button>
+        </div>
+
+        <div class="text-center pt-4">
+            <p id="status" class="text-white/70 h-6">Ready. Select a background sound and start recording.</p>
+            <audio id="player" controls class="w-full mt-4 rounded-lg hidden"></audio>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
+    const bgSoundSelect = document.getElementById('bgSound');
+    const bgVolumeSlider = document.getElementById('bgVolume');
+    const gainSlider = document.getElementById('gain');
+    const bassSlider = document.getElementById('bass');
+    const trebleSlider = document.getElementById('treble');
+    const panSlider = document.getElementById('pan');
+    
+    const bgVolumeValue = document.getElementById('bgVolumeValue');
+    const gainValue = document.getElementById('gainValue');
+    const bassValue = document.getElementById('bassValue');
+    const trebleValue = document.getElementById('trebleValue');
+    const panValue = document.getElementById('panValue');
+    
+    const startRecBtn = document.getElementById('startRec');
+    const stopRecBtn = document.getElementById('stopRec');
+    const playMixBtn = document.getElementById('playMix');
+    const downloadMixBtn = document.getElementById('downloadMix');
+    
+    const statusText = document.getElementById('status');
+    const player = document.getElementById('player');
+
+    // Audio Context & Nodes
+    let audioContext;
+    let micStream, micSource;
+    let bgAudioElement = new Audio();
+    let bgSource, bgGainNode;
+    let gainNode, bassFilter, trebleFilter, pannerNode;
+    let mediaStreamDestination, mediaRecorder;
+    let recordedChunks = [];
+    let finalAudioBlob = null;
+    let isRecording = false;
+
+    // --- Core Audio Setup ---
+    function initAudioContext() {
+        if (audioContext) return; // Initialize only once
+        
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Create shared effect nodes
+        gainNode = audioContext.createGain();
+        bassFilter = audioContext.createBiquadFilter();
+        bassFilter.type = 'lowshelf';
+        bassFilter.frequency.value = 400; // Bass frequencies below 400 Hz
+        
+        trebleFilter = audioContext.createBiquadFilter();
+        trebleFilter.type = 'highshelf';
+        trebleFilter.frequency.value = 4000; // Treble frequencies above 4000 Hz
+        
+        pannerNode = audioContext.createStereoPanner();
+        
+        // Node for background sound volume control
+        bgGainNode = audioContext.createGain();
+        bgSource = audioContext.createMediaElementSource(bgAudioElement);
+        
+        // Destination for recording the final mix
+        mediaStreamDestination = audioContext.createMediaStreamDestination();
+
+        // Connect the graph
+        // BG Sound Path
+        bgSource.connect(bgGainNode).connect(bassFilter);
+
+        // Shared Path
+        bassFilter.connect(trebleFilter)
+                  .connect(gainNode)
+                  .connect(pannerNode)
+                  .connect(audioContext.destination); // To speakers for live preview
+        
+        // Connect the shared path to the recording destination as well
+        pannerNode.connect(mediaStreamDestination);
+        
+        // Set initial values from sliders
+        updateEffects();
+        updateBgVolume();
+    }
+
+    async function getMicrophone() {
+        try {
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            if (!audioContext) initAudioContext();
+            
+            micSource = audioContext.createMediaStreamSource(micStream);
+            
+            // Connect mic to the shared effects chain
+            micSource.connect(bassFilter);
+
+            statusText.textContent = 'Microphone connected. Ready to record.';
+            startRecBtn.disabled = false;
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            statusText.textContent = 'Error: Microphone access denied.';
+            alert('Could not access the microphone. Please allow microphone permissions.');
+        }
+    }
+
+    // --- Event Handlers ---
+
+    bgSoundSelect.addEventListener('change', () => {
+        const soundFile = bgSoundSelect.value;
+        if (soundFile) {
+            if (!audioContext) initAudioContext();
+            audioContext.resume(); // Ensure context is running
+            
+            bgAudioElement.src = soundFile;
+            bgAudioElement.loop = true;
+            bgAudioElement.play();
+            fadeIn(bgGainNode, 0.5, 2); // Fade in to target volume 0.5 over 2 seconds
+        } else {
+            bgAudioElement.pause();
+            bgAudioElement.currentTime = 0;
+        }
+    });
+    
+    // Sliders
+    bgVolumeSlider.addEventListener('input', updateBgVolume);
+    gainSlider.addEventListener('input', updateEffects);
+    bassSlider.addEventListener('input', updateEffects);
+    trebleSlider.addEventListener('input', updateEffects);
+    panSlider.addEventListener('input', updateEffects);
+
+    // Buttons
+    startRecBtn.addEventListener('click', startRecording);
+    stopRecBtn.addEventListener('click', stopRecording);
+    playMixBtn.addEventListener('click', () => player.play());
+    downloadMixBtn.addEventListener('click', downloadMix);
+    
+    // --- Update Functions ---
+
+    function updateBgVolume() {
+        if (bgGainNode) {
+            bgGainNode.gain.setTargetAtTime(bgVolumeSlider.value, audioContext.currentTime, 0.01);
+        }
+        bgVolumeValue.textContent = parseFloat(bgVolumeSlider.value).toFixed(2);
+    }
+    
+    function updateEffects() {
+        if (!audioContext) return;
+        gainNode.gain.value = gainSlider.value;
+        gainValue.textContent = parseFloat(gainSlider.value).toFixed(1);
+
+        bassFilter.gain.value = bassSlider.value;
+        bassValue.textContent = `${bassSlider.value} dB`;
+
+        trebleFilter.gain.value = trebleSlider.value;
+        trebleValue.textContent = `${trebleSlider.value} dB`;
+        
+        pannerNode.pan.value = panSlider.value;
+        const panVal = parseFloat(panSlider.value);
+        panValue.textContent = panVal === 0 ? 'Center' : (panVal < 0 ? `L ${-panVal.toFixed(1)}` : `R ${panVal.toFixed(1)}`);
+    }
+
+    // --- Recording Logic ---
+    async function startRecording() {
+        await getMicrophone(); // Ensure mic is ready
+        if (!micStream || isRecording) return;
+        
+        audioContext.resume();
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(mediaStreamDestination.stream);
+
+        mediaRecorder.ondataavailable = event => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            finalAudioBlob = new Blob(recordedChunks, { type: 'audio/webm; codecs=opus' });
+            player.src = URL.createObjectURL(finalAudioBlob);
+            
+            // UI updates
+            playMixBtn.disabled = false;
+            downloadMixBtn.disabled = false;
+            player.classList.remove('hidden');
+        };
+        
+        mediaRecorder.start();
+        isRecording = true;
+        
+        // UI updates
+        statusText.textContent = 'Recording...';
+        startRecBtn.disabled = true;
+        stopRecBtn.disabled = false;
+        bgSoundSelect.disabled = true;
+        startRecBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        stopRecBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    function stopRecording() {
+        if (!mediaRecorder || !isRecording) return;
+        
+        mediaRecorder.stop();
+        isRecording = false;
+
+        // Disconnect mic to stop its sound from being processed/heard
+        if (micSource) {
+            micSource.disconnect();
+        }
+        micStream.getTracks().forEach(track => track.stop()); // Turn off mic light
+
+        // UI updates
+        statusText.textContent = 'Recording stopped. Mix is ready!';
+        stopRecBtn.disabled = true;
+        startRecBtn.disabled = false;
+        bgSoundSelect.disabled = false;
+        stopRecBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        startRecBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    // --- Utility ---
+    function fadeIn(gainNode, targetVolume, duration) {
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(targetVolume, audioContext.currentTime + duration);
+    }
+    
+    // --- Offline Rendering and Download ---
+    async function downloadMix() {
+        if (!finalAudioBlob) {
+            alert("No final mix to download. Please record first.");
+            return;
+        }
+        statusText.textContent = "Processing final WAV file...";
+        downloadMixBtn.disabled = true;
+        
+        const originalContext = audioContext; // Keep a reference
+        const duration = (await getBlobDuration(finalAudioBlob));
+        const offlineCtx = new OfflineAudioContext(originalContext.destination.channelCount, originalContext.sampleRate * duration, originalContext.sampleRate);
+        
+        // Re-create the entire audio graph in the offline context
+        const offlineBgSource = new AudioBufferSourceNode(offlineCtx);
+        const offlineMicSource = new AudioBufferSourceNode(offlineCtx);
+
+        // Load audio data into buffers
+        const bgBuffer = bgAudioElement.src ? await fetch(bgAudioElement.src).then(r => r.arrayBuffer()).then(d => offlineCtx.decodeAudioData(d)) : null;
+        const micBuffer = await finalAudioBlob.arrayBuffer().then(d => originalContext.decodeAudioData(d));
+
+        if(bgBuffer){
+            offlineBgSource.buffer = bgBuffer;
+            offlineBgSource.loop = true;
+        }
+        offlineMicSource.buffer = micBuffer;
+        
+        // Re-create offline nodes and set their values
+        const offlineBgGain = offlineCtx.createGain();
+        offlineBgGain.gain.value = bgVolumeSlider.value;
+        
+        const offlineBass = offlineCtx.createBiquadFilter();
+        offlineBass.type = 'lowshelf';
+        offlineBass.frequency.value = 400;
+        offlineBass.gain.value = bassSlider.value;
+        
+        const offlineTreble = offlineCtx.createBiquadFilter();
+        offlineTreble.type = 'highshelf';
+        offlineTreble.frequency.value = 4000;
+        offlineTreble.gain.value = trebleSlider.value;
+        
+        const offlineGain = offlineCtx.createGain();
+        offlineGain.gain.value = gainSlider.value;
+        
+        const offlinePanner = offlineCtx.createStereoPanner();
+        offlinePanner.pan.value = panSlider.value;
+        
+        // Connect the offline graph
+        if (bgBuffer) {
+           offlineBgSource.connect(offlineBgGain).connect(offlineBass);
+        }
+        offlineMicSource.connect(offlineBass); // Mic also goes through effects
+        
+        offlineBass.connect(offlineTreble)
+                   .connect(offlineGain)
+                   .connect(offlinePanner)
+                   .connect(offlineCtx.destination);
+                   
+        // Start sources
+        if(bgBuffer) offlineBgSource.start(0);
+        offlineMicSource.start(0);
+        
+        // Render the audio
+        const renderedBuffer = await offlineCtx.startRendering();
+        
+        // Convert to WAV and trigger download
+        const wavBlob = bufferToWave(renderedBuffer);
+        const url = URL.createObjectURL(wavBlob);
+        
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'final-mix.wav';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        
+        statusText.textContent = "Download complete!";
+        downloadMixBtn.disabled = false;
+    }
+
+    async function getBlobDuration(blob) {
+        const tempAudio = new Audio(URL.createObjectURL(blob));
+        return new Promise((resolve, reject) => {
+            tempAudio.addEventListener('loadedmetadata', () => {
+                resolve(tempAudio.duration);
+            });
+            tempAudio.addEventListener('error', (e) => reject(e));
+        });
+    }
+
+    // --- WAV Conversion ---
+    function bufferToWave(abuffer) {
+        let numOfChan = abuffer.numberOfChannels,
+            len = abuffer.length * numOfChan * 2 + 44,
+            buffer = new ArrayBuffer(len),
+            view = new DataView(buffer),
+            channels = [],
+            i, sample,
+            offset = 0,
+            pos = 0;
+
+        // write WAV header
+        setUint32(0x46464952); // "RIFF"
+        setUint32(len - 8); // file length - 8
+        setUint32(0x45564157); // "WAVE"
+
+        setUint32(0x20746d66); // "fmt " chunk
+        setUint32(16); // length = 16
+        setUint16(1); // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(abuffer.sampleRate);
+        setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+        setUint16(numOfChan * 2); // block-align
+        setUint16(16); // 16-bit
+        setUint32(0x61746164); // "data" - chunk
+        setUint32(len - pos - 4); // chunk length
+
+        function setUint16(data) {
+            view.setUint16(pos, data, true);
+            pos += 2;
+        }
+
+        function setUint32(data) {
+            view.setUint32(pos, data, true);
+            pos += 4;
+        }
+
+        for (i = 0; i < abuffer.numberOfChannels; i++)
+            channels.push(abuffer.getChannelData(i));
+
+        while (pos < len) {
+            for (i = 0; i < numOfChan; i++) {
+                sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+                view.setInt16(pos, sample, true);
+                pos += 2;
+            }
+            offset++;
+        }
+        return new Blob([view], { type: 'audio/wav' });
+    }
+});
+</script>
+
 </body>
 </html>
